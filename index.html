@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>RGB Hub Pro | Advanced Controller</title>
+        <script src="https://cdn.jsdelivr.net/npm/@jaames/iro@5"></script>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            :root {
+                --bg-color: #0f172a;
+                --card-bg: #1e293b;
+                --accent-color: #38bdf8;
+                --text-main: #f8fafc;
+                --text-dim: #94a3b8;
+                --success: #10b981;
+                --error: #ef4444;
+                --warning: #f59e0b;
+                --disabled: #334155;
+            }
+
+            body {
+                font-family: "Inter", sans-serif;
+                background-color: var(--bg-color);
+                color: var(--text-main);
+                margin: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+            }
+
+            .container {
+                background: var(--card-bg);
+                padding: 2rem;
+                border-radius: 24px;
+                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+                width: 100%;
+                max-width: 440px;
+                text-align: center;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+
+            /* Hidden by default, styled for visibility when shown */
+            .linux-warning {
+                display: none;
+                background: rgba(245, 158, 11, 0.15);
+                border: 1px solid var(--warning);
+                color: var(--warning);
+                padding: 15px;
+                border-radius: 12px;
+                font-size: 0.75rem;
+                margin-bottom: 1.5rem;
+                text-align: left;
+                line-height: 1.5;
+            }
+
+            .linux-warning code {
+                background: rgba(0, 0, 0, 0.4);
+                padding: 4px 6px;
+                border-radius: 4px;
+                display: block;
+                margin-top: 8px;
+                color: #fff;
+                word-break: break-all;
+                font-family: monospace;
+            }
+
+            .status-badge {
+                display: inline-flex;
+                align-items: center;
+                padding: 4px 12px;
+                border-radius: 999px;
+                font-size: 0.75rem;
+                background: rgba(0, 0, 0, 0.3);
+                color: var(--text-dim);
+                margin-bottom: 1.5rem;
+            }
+
+            .status-dot {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: var(--error);
+                margin-right: 8px;
+            }
+
+            .status-dot.connected {
+                background: var(--success);
+                box-shadow: 0 0 8px var(--success);
+            }
+
+            .section-label {
+                text-align: left;
+                font-size: 0.8rem;
+                color: var(--text-dim);
+                text-transform: uppercase;
+                margin-bottom: 8px;
+                display: block;
+            }
+
+            select {
+                width: 100%;
+                /* Top/Bottom: 12px, Right: 40px, Left: 12px */
+                padding: 12px 40px 12px 12px;
+                border-radius: 12px;
+                background: #0f172a;
+                color: white;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                font-size: 1rem;
+                margin-bottom: 1.5rem;
+                outline: none;
+                /* Ensures the arrow doesn't look squished in some browsers */
+                appearance: none;
+                -webkit-appearance: none;
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+                background-repeat: no-repeat;
+                background-position: right 12px center;
+                background-size: 16px;
+            }
+
+            #colorSection.disabled {
+                opacity: 0.3;
+                pointer-events: none;
+                filter: grayscale(1);
+            }
+
+            #picker {
+                display: flex;
+                justify-content: center;
+                margin-bottom: 1.5rem;
+            }
+
+            .controls {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 10px;
+                margin-bottom: 1.5rem;
+            }
+
+            .input-group {
+                background: rgba(0, 0, 0, 0.2);
+                padding: 10px;
+                border-radius: 12px;
+            }
+
+            .input-group label {
+                display: block;
+                font-size: 0.7rem;
+                color: var(--text-dim);
+                margin-bottom: 4px;
+            }
+
+            .input-group input {
+                background: transparent;
+                border: none;
+                color: white;
+                width: 100%;
+                text-align: center;
+                font-weight: 600;
+            }
+
+            button {
+                width: 100%;
+                padding: 14px;
+                border-radius: 12px;
+                border: none;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.2s;
+                margin-top: 10px;
+            }
+
+            #connectBtn {
+                background: var(--text-main);
+                color: var(--bg-color);
+            }
+            #sendBtn {
+                background: var(--accent-color);
+                color: white;
+            }
+            #sendBtn:disabled {
+                background: var(--disabled);
+                cursor: not-allowed;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div id="linuxNotice" class="linux-warning">
+                <strong>🐧 Linux Permission Issue:</strong>
+                WebHID cannot access the device. Please add this rule to your
+                udev settings and restart the browser:
+                <code>/etc/udev/rules.d/99-rgb-hub.rules</code>
+                <code
+                    >KERNEL=="hidraw*", ATTRS{idVendor}=="1a2c",
+                    ATTRS{idProduct}=="1507", MODE="0666"</code
+                >
+            </div>
+
+            <div class="status-badge">
+                <div id="statusDot" class="status-dot"></div>
+                <span id="statusText">No Device Connected</span>
+            </div>
+
+            <label class="section-label">Lighting Mode</label>
+            <select id="modeSelect">
+                <optgroup label="Custom Color Modes">
+                    <option value="08,01,true">Breathe (color)</option>
+                    <option value="18,05,true">Twoblink (color)</option>
+                    <option value="0c,02,true">Blink (color)</option>
+                    <option value="17,04,true">Laser (color)</option>
+                    <option value="09,00,true">Static Solid (color)</option>
+                </optgroup>
+                <optgroup label="Preset Animations">
+                    <option value="02,02,false">Aurora</option>
+                    <option value="07,01,false">Color Breathe</option>
+                    <option value="01,00,false">Rainbow</option>
+                    <option value="15,00,false">Sakura</option>
+                    <option value="16,04,false">Emergency</option>
+                    <option value="04,01,false">Marquee</option>
+                    <option value="05,01,false">Twinking</option>
+                    <option value="06,07,false">Color Cycle</option>
+                    <option value="03,00,false">Meteor</option>
+                    <option value="14,01,false">BlackHole</option>
+                    <option value="0b,01,false">Center Meteor</option>
+                    <option value="0a,00,false">Off</option>
+                </optgroup>
+            </select>
+
+            <div id="colorSection">
+                <label class="section-label">Color Adjustment</label>
+                <div id="picker"></div>
+                <div class="controls">
+                    <div class="input-group">
+                        <label>R</label
+                        ><input type="text" id="r" value="255" readonly />
+                    </div>
+                    <div class="input-group">
+                        <label>G</label
+                        ><input type="text" id="g" value="0" readonly />
+                    </div>
+                    <div class="input-group">
+                        <label>B</label
+                        ><input type="text" id="b" value="255" readonly />
+                    </div>
+                </div>
+            </div>
+
+            <button id="connectBtn">🔌 Connect Hub</button>
+            <button id="sendBtn" disabled>Apply Settings</button>
+        </div>
+
+        <script>
+            let device;
+            const VENDOR_ID = 0x1a2c;
+            const PRODUCT_ID = 0x1507;
+
+            const colorPicker = new iro.ColorPicker("#picker", {
+                width: 180,
+                color: "#00f0ff",
+                layout: [{ component: iro.ui.Wheel }],
+            });
+
+            const modeSelect = document.getElementById("modeSelect");
+            const colorSection = document.getElementById("colorSection");
+            const sendBtn = document.getElementById("sendBtn");
+            const statusDot = document.getElementById("statusDot");
+            const statusText = document.getElementById("statusText");
+            const linuxNotice = document.getElementById("linuxNotice");
+
+            modeSelect.addEventListener("change", () => {
+                const val = modeSelect.value.split(",");
+                if (val[2] === "true") {
+                    colorSection.classList.remove("disabled");
+                } else {
+                    colorSection.classList.add("disabled");
+                }
+            });
+
+            colorPicker.on("color:change", (color) => {
+                document.getElementById("r").value = color.rgb.r;
+                document.getElementById("g").value = color.rgb.g;
+                document.getElementById("b").value = color.rgb.b;
+            });
+
+            document
+                .getElementById("connectBtn")
+                .addEventListener("click", async () => {
+                    // Clear any previous error visibility
+                    linuxNotice.style.display = "none";
+
+                    try {
+                        const devices = await navigator.hid.requestDevice({
+                            filters: [
+                                { vendorId: VENDOR_ID, productId: PRODUCT_ID },
+                            ],
+                        });
+
+                        if (devices.length === 0) return;
+
+                        device = devices[0];
+                        await device.open();
+
+                        statusDot.classList.add("connected");
+                        statusText.innerText =
+                            "Connected: " + device.productName;
+                        sendBtn.disabled = false;
+                    } catch (e) {
+                        console.error("Connection error:", e);
+
+                        // CHECK: Is the user on Linux AND did the error mention security/permissions?
+                        const isLinux =
+                            navigator.platform
+                                .toUpperCase()
+                                .indexOf("LINUX") !== -1;
+
+                        if (isLinux) {
+                            linuxNotice.style.display = "block";
+                            statusText.innerText = "Permission Denied";
+                        } else {
+                            statusText.innerText = "Error: " + e.message;
+                        }
+                    }
+                });
+
+            document
+                .getElementById("sendBtn")
+                .addEventListener("click", async () => {
+                    if (!device) return;
+
+                    const val = modeSelect.value.split(",");
+                    const modeId = parseInt(val[0], 16);
+                    const paramId = parseInt(val[1], 16);
+                    const hasColor = val[2] === "true";
+
+                    const packet = new Uint8Array(64);
+                    packet.set([
+                        0x80,
+                        0x0b,
+                        0x02,
+                        0x0f,
+                        modeId,
+                        0x00,
+                        paramId,
+                        0x03,
+                    ]);
+
+                    if (hasColor) {
+                        const { r, g, b } = colorPicker.color.rgb;
+                        packet[8] = r;
+                        packet[9] = g;
+                        packet[10] = b;
+                    } else {
+                        packet[8] = 0xff;
+                        packet[9] = 0xc8;
+                        packet[10] = 0x00;
+                    }
+
+                    try {
+                        await device.sendReport(0, packet);
+                        sendBtn.innerText = "Applied!";
+                        setTimeout(
+                            () => (sendBtn.innerText = "Apply Settings"),
+                            1000,
+                        );
+                    } catch (e) {
+                        console.error(e);
+                        alert("Send failed. Check connection.");
+                    }
+                });
+        </script>
+    </body>
+</html>
